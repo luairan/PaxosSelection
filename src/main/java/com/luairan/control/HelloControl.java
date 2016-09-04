@@ -13,7 +13,6 @@ public class HelloControl {
     @Resource
     private TestService testService;
 
-
     @RequestMapping(value = "/new.do", method = RequestMethod.GET)
     public String getNewForm() {
         return testService.getName();
