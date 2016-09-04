@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SuperannaApplication {
 
     public static void main(String[] args) {
-            SpringApplication.run(SuperannaApplication.class, args);
+        SpringApplication.run(SuperannaApplication.class, args);
     }
 
     @RequestMapping(value = "/new.do", method = RequestMethod.GET)
