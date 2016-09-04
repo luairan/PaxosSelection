@@ -1,9 +1,7 @@
 package com.luairan.service.http.context.action;
 
-import com.luairan.client.http.HTTPClient;
-import com.luairan.client.http.HTTPClient.Action;
-import com.luairan.conf.Configration;
-import com.luairan.master.SingleNode;
+
+import com.luairan.service.http.HTTPClient;
 
 import java.io.*;
 
@@ -15,16 +13,14 @@ import java.io.*;
  */
 public class ShowMaster{
 	
-	private static String showContext = Configration.getValue("/client/paxos-server/com.luairan.service.http-com.luairan.service.context/shower");
+	private static String showContext = "/paxosshower/";
 
-	public static SingleNode getMaster(String httpUrl){
+	public static String  getMaster(String httpUrl){
 		
 		return HTTPClient.sendPost(httpUrl+showContext, showAction);
 	}
-	
-	
 
-	private static Action<SingleNode> showAction =new Action<SingleNode>() {
+	private static HTTPClient.Action<String> showAction =new HTTPClient.Action<String>() {
 		@Override
 		public void sendInfo(OutputStream os,Object ... args) throws IOException {
 			ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(os));
@@ -33,9 +29,9 @@ public class ShowMaster{
 		}
 		
 		@Override
-		public SingleNode reciveInfo(InputStream is) throws IOException, ClassNotFoundException {
+		public String reciveInfo(InputStream is) throws IOException, ClassNotFoundException {
 			ObjectInputStream ois = new ObjectInputStream(is);
-			return (SingleNode) ois.readObject();
+			return (String) ois.readObject();
 		}
 	};
 

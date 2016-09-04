@@ -1,8 +1,7 @@
 package com.luairan.service.http.context.action;
 
-import com.luairan.client.http.HTTPClient;
-import com.luairan.client.http.HTTPClient.Action;
-import com.luairan.conf.Configration;
+
+import com.luairan.service.http.HTTPClient;
 
 import java.io.*;
 
@@ -13,7 +12,7 @@ import java.io.*;
  */
 public class PaxosTriger{
 	
-	private static String proposeContext = Configration.getValue("/client/paxos-server/com.luairan.service.http-com.luairan.service.context/proposer");
+	private static String proposeContext = "/paxospropose/";
 	
 	
 	public static String triger(String httpUrl){
@@ -21,14 +20,14 @@ public class PaxosTriger{
 		return HTTPClient.sendPost(httpUrl+proposeContext, showAction);
 	}
 
-	private static Action<String> showAction =new Action<String>() {
+	private static HTTPClient.Action<String> showAction =new HTTPClient.Action<String>() {
 		@Override
 		public void sendInfo(OutputStream os,Object ... args) throws IOException {
 			ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(os));
 			oos.writeUTF("test");			
 			oos.flush();
 		}
-		 
+
 		@Override
 		public String reciveInfo(InputStream is) throws IOException, ClassNotFoundException {
 			ObjectInputStream ois = new ObjectInputStream(is);

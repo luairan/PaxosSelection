@@ -2,7 +2,6 @@ package com.luairan.service.context;
 
 
 import java.io.Serializable;
-import java.util.List;
 
 public class Response implements Serializable {
 
@@ -16,8 +15,6 @@ public class Response implements Serializable {
     private long ballotNumber;
     private Type type;
     private Proposal accpetedProposal;
-
-    private List<SlaveNode> list;
 
     public long getBallotNumber() {
         return ballotNumber;
@@ -43,16 +40,5 @@ public class Response implements Serializable {
         this.accpetedProposal = accpetedProposal;
     }
 
-    public List<SlaveNode> getList() {
-        return list;
-    }
-
-    public void setList(List<SlaveNode> list) {
-        this.list = list;
-    }
-
-    public enum Type {
-        Closed, PrepareResponse, ProposeResponse;
-    }
 
 }

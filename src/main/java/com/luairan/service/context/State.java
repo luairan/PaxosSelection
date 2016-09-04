@@ -7,11 +7,11 @@ public class State implements Serializable {
      *
      */
     private static final long serialVersionUID = 4252840912458974311L;
-    private volatile long ballotNumber = 0L;
-    private long timeperoid = 0L;
-    private volatile long highestPromissed = 0L;
+    private volatile long ballotNumber;
+    private long timeperoid;
+    private volatile long highestPromissed;
     private volatile Proposal accpetedProposal;
-    private volatile boolean leaseOwner = false;
+    private volatile boolean leaseOwner;
 
 
     public synchronized long getNextBallotNumber() {

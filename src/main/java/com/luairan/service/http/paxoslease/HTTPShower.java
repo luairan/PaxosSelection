@@ -1,6 +1,7 @@
 package com.luairan.service.http.paxoslease;
 
-import com.luairan.leader.context.State;
+import com.alibaba.fastjson.JSON;
+import com.luairan.service.context.State;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -27,7 +28,7 @@ public class HTTPShower implements HttpHandler {
 			ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(responseBody));
 			@SuppressWarnings("unused")
 			String keys = ois.readUTF();
-			oos.writeObject(state.getAccpetedProposal().getSingleNode());
+			oos.writeObject(JSON.toJSONString(state.getAccpetedProposal()));
 			oos.flush();
 			oos.close();
 		}
@@ -37,7 +38,7 @@ public class HTTPShower implements HttpHandler {
             exchange.sendResponseHeaders(200, 0);
             OutputStream responseBody = exchange.getResponseBody();
             PrintWriter pr =new PrintWriter(responseBody);
-            pr.println(state.getAccpetedProposal().getSingleNode());
+            pr.println(JSON.toJSONString(state.getAccpetedProposal()));
             pr.flush();
             pr.close();
             responseBody.close();

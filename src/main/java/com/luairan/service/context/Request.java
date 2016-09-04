@@ -2,7 +2,6 @@ package com.luairan.service.context;
 
 
 import java.io.Serializable;
-import java.util.List;
 
 public class Request implements Serializable {
     /**
@@ -13,7 +12,6 @@ public class Request implements Serializable {
     private Type type;
     private long highestPromissed;
     private Proposal proposal;
-    private List<SlaveNode> list;
 
     public long getBallotNumber() {
         return ballotNumber;
@@ -47,16 +45,5 @@ public class Request implements Serializable {
         this.proposal = proposal;
     }
 
-    public List<SlaveNode> getList() {
-        return list;
-    }
-
-    public void setList(List<SlaveNode> list) {
-        this.list = list;
-    }
-
-    public enum Type {
-        PrepareRequest, ProposeRequest;
-    }
 
 }

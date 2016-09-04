@@ -1,5 +1,6 @@
 package com.luairan.service.conf;
 
+import com.luairan.service.util.XMLReader;
 import org.dom4j.Attribute;
 import org.dom4j.Document;
 import org.dom4j.Element;
@@ -20,7 +21,7 @@ public final class Configration {
 	private static Map<String,List<Map<String,String>>> map = new HashMap<String,List<Map<String,String>>>();
 	
 	static {
-		Document doc=XMLReader.readXML("client.xml");
+		Document doc= XMLReader.readXML("client.xml");
 		Element root=doc.getRootElement();
 		putOneToMap(map, root, "");
 		for(Entry<String,List<Map<String,String>>> en:map.entrySet()){
