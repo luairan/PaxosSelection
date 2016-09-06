@@ -1,5 +1,7 @@
 # superanna
 
+亲爱的安娜同学~生日快乐 @2016.09.06 17:22:20
+
 基于spring-boot实现的标准PaxosLease选主节点工程
 
 基本原理译文摘录自 http://dsdoc.net/paxoslease/
