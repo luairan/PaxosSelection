@@ -1,9 +1,10 @@
 package com.luairan.service.websocket;
 
+import com.luairan.service.paxoslease.ProposeResponseHandler;
 import com.luairan.service.util.websocket.WebSocketClientEndpoint;
-import com.luairan.service.paxoslease.*;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import javax.websocket.Session;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -15,7 +16,6 @@ import java.util.TreeMap;
  */
 
 
-
 @Service
 public class WebSocketServiceImpl implements WebSocketService {
 
@@ -23,16 +23,17 @@ public class WebSocketServiceImpl implements WebSocketService {
     private Map<String, WebSocketClientEndpoint> holdwebSocket = new TreeMap();
 
 
-    public ProposeResponseHandler proposeResponseHandler;
+    @Resource
+    private ProposeResponseHandler proposeResponseHandler;
 
 
     public void startUpSingle(String url) throws URISyntaxException {
         WebSocketClientEndpoint clientEndPoint = new WebSocketClientEndpoint(new URI(url));
         // add listener
         clientEndPoint.addMessageHandler(new WebSocketClientEndpoint.MessageHandler() {
-            public void handleMessage(Session userSession,String message) {
-//                System.out.println(message);
-                proposeResponseHandler.handleMessage(userSession,message);
+            public void handleMessage(Session userSession, String message) {
+                System.out.println("proposer recive:\t"+message);
+                proposeResponseHandler.handleMessage(userSession, message);
             }
         });
 
@@ -41,6 +42,8 @@ public class WebSocketServiceImpl implements WebSocketService {
         holdwebSocket.put(url, clientEndPoint);
     }
 
+
+    @Override
     public void sendMessage(String url, String message) throws URISyntaxException {
         if (!holdwebSocket.containsKey(url)) {
             startUpSingle(url);

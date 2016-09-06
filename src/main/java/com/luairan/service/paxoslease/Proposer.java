@@ -52,11 +52,8 @@ public class Proposer {
             return ;
         setProposalOne(response.getAccpetedProposal());
 //        if (response.getAccpetedProposal() == null || proposal.getSingleNode().getAddress().equals(singleNode.getAddress()))
-
         if (response.getAccpetedProposal() == null)
             proposerOne.decrementAndGet();
-//        return response.getAccpetedProposal();
-//            proposerOne.countDown();
     }
 
 
@@ -93,9 +90,6 @@ public class Proposer {
 
     public void proposeResonseTwo() {
         System.out.println(new Date() + "\t" + "成为主节点");
-//		if(reciveNode!=null){
-//			consistentHashLockMuti.buildMap(reciveNode);
-//		}
         state.setLeaseOwner(true);
     }
 
@@ -125,7 +119,6 @@ public class Proposer {
         return proposerTwo.get();
     }
 
-
     public boolean getProposerOneFinished() {
         return proposerOneFinished.get();
     }
@@ -133,8 +126,6 @@ public class Proposer {
     public boolean  getProposerTwoFinished() {
         return proposerTwoFinished.get();
     }
-
-
 
     public boolean compareAndSetOne(boolean oldValue,boolean newValue){
        return proposerOneFinished.compareAndSet(oldValue,newValue);

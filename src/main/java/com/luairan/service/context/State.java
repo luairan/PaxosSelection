@@ -1,7 +1,11 @@
 package com.luairan.service.context;
 
+import org.springframework.stereotype.Component;
+
 import java.io.Serializable;
 
+
+@Component
 public class State implements Serializable {
     /**
      *

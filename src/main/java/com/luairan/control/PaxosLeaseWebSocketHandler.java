@@ -29,9 +29,8 @@ public class PaxosLeaseWebSocketHandler extends TextWebSocketHandler {
         System.out.println("ConnectionEstablished");
         log.debug("ConnectionEstablished");
         users.put(session.getId(), session);
-        session.sendMessage(new TextMessage("connect"));
-        session.sendMessage(new TextMessage("new_msg"));
-
+//        session.sendMessage(new TextMessage("connect"));
+//        session.sendMessage(new TextMessage("new_msg"));
     }
 
 //    @Override
@@ -46,7 +45,7 @@ public class PaxosLeaseWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void handleTextMessage(WebSocketSession session, TextMessage message) {
-        System.out.println("handleMessage" + message.toString());
+        System.out.println("paxos acceptor recive :\t" + new String(message.asBytes()));
         try {
             acceptorRequestHandler.handleMessage(session, new String(message.asBytes()));
         } catch (IOException e) {

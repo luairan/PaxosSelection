@@ -6,6 +6,7 @@ import com.luairan.service.context.State;
 import com.luairan.service.context.Type;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.util.Date;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -21,6 +22,7 @@ public class AcceptorServiceImpl implements AcceptorService {
 
     private static long peroidTime = Long.parseLong("30");
 
+    @Resource
     private State state;
 
     private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);

@@ -22,25 +22,29 @@ public class ProposeResponseHandler {
     @Resource
     private ProposerService proposerService;
 
-
     public void handleMessage(Session userSession, String message) {
         if (StringUtils.isNotBlank(message)) {
             Response response = JSON.parseObject(message, Response.class);
+
+            if (response.getType() == Type.Closed)
+                return;
 
             //收到Acceptor的第一阶段
             if (response.getType() == Type.PrepareResponse) {
 
                 Proposer proposer = proposerService.getCurrentProposer();
+
                 proposer.reciveResponseOne(response);
+
                 int number = proposer.getProposerOne();
 
-                boolean oneStepCanGo =false;
-                if(number<=0){
-                    oneStepCanGo = proposer.compareAndSetOne(false,true);
+                boolean oneStepCanGo = false;
+                if (number <= 0) {
+                    oneStepCanGo = proposer.compareAndSetOne(false, true);
                 }
-                if(oneStepCanGo){
+                if (oneStepCanGo) {
                     proposerService.proposerTwoBefore();
-                }else{
+                } else {
 
                 }
 
@@ -54,13 +58,13 @@ public class ProposeResponseHandler {
 
                 int number = proposer.getProposerTwo();
 
-                boolean twoStepCanGo =false;
-                if(number<=0){
-                    twoStepCanGo = proposer.compareAndSetTwo(false,true);
+                boolean twoStepCanGo = false;
+                if (number <= 0) {
+                    twoStepCanGo = proposer.compareAndSetTwo(false, true);
                 }
-                if(twoStepCanGo){
+                if (twoStepCanGo) {
                     proposerService.proposerTwoAfter();
-                }else{
+                } else {
 
                 }
             }

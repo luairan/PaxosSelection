@@ -10,5 +10,11 @@ public interface ProposerService {
     void proposerTwoBefore();
 
     void proposerTwoAfter();
+
+    void proposerStart() throws InterruptedException;
+
+    void proposer() throws InterruptedException;
+
+    void cancle();
 }
 
