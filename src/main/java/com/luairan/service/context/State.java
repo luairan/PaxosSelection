@@ -18,7 +18,7 @@ public class State implements Serializable {
     private volatile boolean leaseOwner;
 
 
-    public synchronized long getNextBallotNumber() {
+    public synchronized long nextBallotNumber() {
         ballotNumber++;
         return ballotNumber;
     }
@@ -62,6 +62,9 @@ public class State implements Serializable {
     public synchronized void setBallotNumber(long ballotNumber) {
         this.ballotNumber = ballotNumber;
     }
+
+
+
 
 
 }

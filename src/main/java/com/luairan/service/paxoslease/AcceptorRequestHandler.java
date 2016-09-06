@@ -27,10 +27,12 @@ public class AcceptorRequestHandler {
             //一阶段
             if (request.getType() == Type.PrepareRequest) {
                 Response response = acceptorService.prepareRequest(request);
+                System.out.println("acceptor send PrepareResponse :\t"+JSON.toJSONString(response));
                 session.sendMessage(new TextMessage(JSON.toJSONString(response)));
                 //二阶段
             } else if (request.getType() == Type.ProposeRequest) {
                 Response response = acceptorService.proposeRequest(request);
+                System.out.println("acceptor send ProposeResponse :\t"+JSON.toJSONString(response));
                 session.sendMessage(new TextMessage(JSON.toJSONString(response)));
             }
         }

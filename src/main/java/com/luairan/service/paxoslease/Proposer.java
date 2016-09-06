@@ -1,6 +1,7 @@
 package com.luairan.service.paxoslease;
 
 
+import com.alibaba.fastjson.JSON;
 import com.luairan.service.context.*;
 
 import java.util.Date;
@@ -38,7 +39,7 @@ public class Proposer {
     public Request propose() {
         Request request = new Request();
         request.setType(Type.PrepareRequest);
-        request.setBallotNumber(state.getNextBallotNumber());
+        request.setBallotNumber(state.nextBallotNumber());
         return request;
     }
 
@@ -62,17 +63,15 @@ public class Proposer {
      * @return
      */
     public Request prepareRequestOne() {
+        if (scheduledFuture != null) scheduledFuture.cancel(false);
         scheduledFuture = scheduler.schedule(new TimeOut(), peroidTime, TimeUnit.SECONDS);
         Request request = new Request();
         request.setType(Type.ProposeRequest);
         request.setBallotNumber(state.getBallotNumber());
         Proposal proposal = new Proposal();
         proposal.setProposerId(state.getBallotNumber() + "");
-//        proposal.setSingleNode(singleNode);
         proposal.setTimeout(10000);
         request.setProposal(proposal);
-//        if (this.proposal == null || !singleNode.getAddress().equals(this.proposal.getSingleNode().getAddress()))
-//            request.setList(consistentHashLockMuti.getNode());
         return request;
     }
 
@@ -80,15 +79,14 @@ public class Proposer {
         return this.scheduledFuture;
     }
 
-
     public void reciveResponseTwo(Response response) {
         if (response.getBallotNumber() != state.getBallotNumber())
             return;
-//        setReciveNode(response.getList());
         proposerTwo.decrementAndGet();
     }
 
     public void proposeResonseTwo() {
+
         System.out.println(new Date() + "\t" + "成为主节点");
         state.setLeaseOwner(true);
     }
@@ -98,7 +96,7 @@ public class Proposer {
     }
 
     public synchronized void setProposalOne(Proposal proposal) {
-        System.out.println(new Date() + "\t" + "\t   获取" + proposal);
+        System.out.println(new Date() + "\t" + "\t   一阶段获取" + JSON.toJSONString(proposal));
         this.proposal = proposal;
     }
 

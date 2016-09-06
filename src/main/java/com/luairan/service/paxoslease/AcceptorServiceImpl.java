@@ -51,11 +51,6 @@ public class AcceptorServiceImpl implements AcceptorService {
             return response;
         }
         state.setAccpetedProposal(request.getProposal());
-//        if (list == null) {
-//            setList(request.getList());
-//        } else {
-//            response.setList(list);
-//        }
         if (scheduledFuture != null) scheduledFuture.cancel(false);
         scheduledFuture = scheduler.schedule(new TimeOut(), peroidTime, TimeUnit.SECONDS);
         response.setType(Type.ProposeResponse);
@@ -68,7 +63,7 @@ public class AcceptorServiceImpl implements AcceptorService {
         @Override
         public void run() {
             state.setAccpetedProposal(null);
-            System.out.println(new Date() + "\t" + "acceptor - set - null");
+            System.out.println(new Date() + "\t" + "acceptor - 释放锁");
         }
     }
 }

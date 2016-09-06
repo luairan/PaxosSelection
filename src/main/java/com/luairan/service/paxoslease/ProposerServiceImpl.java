@@ -58,7 +58,7 @@ public class ProposerServiceImpl implements ProposerService {
 
     @Override
     public void proposerTwoBefore() {
-        if (scheduledFutureProposer != null) scheduledFutureProposer.cancel(false);
+
         Request request = proposer.prepareRequestOne();
         scheduledFutureProposer = proposer.getScheduledFuture();
         String jsonInfo = JSON.toJSONString(request);
