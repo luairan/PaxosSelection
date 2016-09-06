@@ -16,13 +16,13 @@ import javax.websocket.WebSocketContainer;
  * @author Jiji_Sasidharan
  */
 @ClientEndpoint
-public class WebsocketClientEndpoint {
+public class WebSocketClientEndpoint {
 
     Session userSession = null;
 
     private MessageHandler messageHandler;
 
-    public WebsocketClientEndpoint(URI endpointURI) {
+    public WebSocketClientEndpoint(URI endpointURI) {
         try {
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
             container.connectToServer(this, endpointURI);
@@ -62,7 +62,7 @@ public class WebsocketClientEndpoint {
     @OnMessage
     public void onMessage(String message) {
         if (this.messageHandler != null) {
-            this.messageHandler.handleMessage(message);
+            this.messageHandler.handleMessage(userSession,message);
         }
     }
 
@@ -89,8 +89,12 @@ public class WebsocketClientEndpoint {
      *
      * @author Jiji_Sasidharan
      */
-    public static interface MessageHandler {
+    public interface MessageHandler {
 
-        public void handleMessage(String message);
+         void handleMessage(Session userSession ,String message);
     }
+
+
+
+
 }

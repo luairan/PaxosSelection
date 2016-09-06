@@ -1,21 +1,13 @@
 package com.luairan.service.context;
 
 
-import java.io.Serializable;
-
-public class Response implements Serializable {
-
-
-    /**
-     *
-     */
-    private static final long serialVersionUID = -1462066735778786535L;
-
-
+/**
+ *
+ */
+public class Response {
     private long ballotNumber;
     private Type type;
     private Proposal accpetedProposal;
-
     public long getBallotNumber() {
         return ballotNumber;
     }
@@ -39,6 +31,4 @@ public class Response implements Serializable {
     public void setAccpetedProposal(Proposal accpetedProposal) {
         this.accpetedProposal = accpetedProposal;
     }
-
-
 }

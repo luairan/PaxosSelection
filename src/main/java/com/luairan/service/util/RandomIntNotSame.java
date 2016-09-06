@@ -7,7 +7,7 @@ import java.util.Random;
  *
  * @author luairan
  */
-public class RandomIntNotSame {
+public class  RandomIntNotSame {
 
     private final Random random;
     private final int startNum;

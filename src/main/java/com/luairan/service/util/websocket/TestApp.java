@@ -1,5 +1,6 @@
 package com.luairan.service.util.websocket;
 
+import javax.websocket.Session;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -8,13 +9,16 @@ public class TestApp {
     public static void main(String[] args) {
         try {
             // open websocket
-            final WebsocketClientEndpoint clientEndPoint = new WebsocketClientEndpoint(new URI("ws://localhost:8080/webSocketServer"));
+            WebSocketClientEndpoint clientEndPoint = new WebSocketClientEndpoint(new URI("ws://localhost:8080/webSocketServer"));
 
             // add listener
-            clientEndPoint.addMessageHandler(new WebsocketClientEndpoint.MessageHandler() {
-                public void handleMessage(String message) {
+            clientEndPoint.addMessageHandler(new WebSocketClientEndpoint.MessageHandler() {
+                @Override
+                public void handleMessage(Session userSession, String message) {
                     System.out.println(message);
                 }
+
+
             });
 
             // send message to websocket
