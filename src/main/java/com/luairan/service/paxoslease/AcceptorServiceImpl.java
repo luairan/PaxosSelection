@@ -55,6 +55,7 @@ public class AcceptorServiceImpl implements AcceptorService {
         scheduledFuture = scheduler.schedule(new TimeOut(), peroidTime, TimeUnit.SECONDS);
         response.setType(Type.ProposeResponse);
         response.setBallotNumber(request.getBallotNumber());
+        response.setAccpetedProposal(request.getProposal());
         return response;
     }
 

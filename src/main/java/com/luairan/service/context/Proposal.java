@@ -1,11 +1,7 @@
 package com.luairan.service.context;
 
 
-import java.io.Serializable;
-
-public class Proposal implements Serializable {
-
-    private static final long serialVersionUID = -3534689343324695561L;
+public class Proposal {
     private String proposerId;
     private String machineId;
     private long timeout;

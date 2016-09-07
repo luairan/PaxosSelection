@@ -8,6 +8,7 @@ public class Response {
     private long ballotNumber;
     private Type type;
     private Proposal accpetedProposal;
+
     public long getBallotNumber() {
         return ballotNumber;
     }

@@ -82,11 +82,11 @@ public class Proposer {
     public void reciveResponseTwo(Response response) {
         if (response.getBallotNumber() != state.getBallotNumber())
             return;
+        setProposalOne(response.getAccpetedProposal());
         proposerTwo.decrementAndGet();
     }
 
     public void proposeResonseTwo() {
-
         System.out.println(new Date() + "\t" + "成为主节点");
         state.setLeaseOwner(true);
     }
