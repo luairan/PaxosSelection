@@ -5,7 +5,7 @@
 
 基本原理译文摘录自 http://dsdoc.net/paxoslease/
 
-##如果对你有帮助 来杯咖啡：  Alipay donation ： luairan93@gmail.com
+## 如果对你有帮助 来杯咖啡：  Alipay donation ： luairan93@gmail.com
 
 
 
