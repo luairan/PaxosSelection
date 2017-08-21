@@ -5,6 +5,8 @@
 
 基本原理译文摘录自 http://dsdoc.net/paxoslease/
 
+![打赏](https://luairan.github.io/DingTalk20170821160529.png)
+
 
 毕业论文中对Paxos的理解
 https://github.com/luairan/PaxosSelection/blob/master/JAVAweb.pdf
