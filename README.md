@@ -1,8 +1,18 @@
 
 
-# 基于spring-boot实现的标准PaxosLease选主节点工程
+# 基于spring-boot实现的标准PaxosLease选主算法
+
 
 基本原理译文摘录自 http://dsdoc.net/paxoslease/
+
+
+毕业论文中对Paxos的理解
+https://github.com/luairan/PaxosSelection/blob/master/JAVAweb.pdf
+
+
+
+
+
 
 【译】PaxosLease：实现租约的无盘Paxos算法
 原文名:	
