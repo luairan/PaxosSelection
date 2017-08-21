@@ -7,7 +7,7 @@
 
 ##如果对你有帮助 来杯咖啡：  Alipay donation ： luairan93@gmail.com
 
-![打赏](https://luairan.github.io/1621925719.jpg)
+![打赏](https://luairan.github.io/DingTalk20170821162050.png)
 
 
 毕业论文中对Paxos的理解
