@@ -10,8 +10,8 @@ import org.springframework.context.annotation.Configuration;
 //@SpringBootApplication
 @Configuration
 @ComponentScan
-public class SuperannaApplication {
+public class Application {
     public static void main(String[] args) {
-        SpringApplication.run(SuperannaApplication.class, args);
+        SpringApplication.run(Application.class, args);
     }
 }
