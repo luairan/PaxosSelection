@@ -4,12 +4,12 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.luairan</groupId>
-	<artifactId>superanna</artifactId>
+	<artifactId>paxos-selection</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>superanna</name>
-	<description>Demo project for Spring Boot</description>
+	<name>paxos-selection</name>
+	<description>PaxosLease leader election with multi-node regression tests</description>
 
 	<parent>
 		<groupId>org.springframework.boot</groupId>

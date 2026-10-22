@@ -10,9 +10,9 @@ Build with JDK 8 and Maven: `mvn clean verify`. Run each command in a separate
 terminal; the list of acceptors must be identical on every node:
 
 ```sh
-java -jar target/superanna-0.0.1-SNAPSHOT.jar --server.port=8081 --paxos.node-id=1 --paxos.data-dir=./data/node1 --paxos.peers=ws://localhost:8081/paxos,ws://localhost:8082/paxos,ws://localhost:8083/paxos
-java -jar target/superanna-0.0.1-SNAPSHOT.jar --server.port=8082 --paxos.node-id=2 --paxos.data-dir=./data/node2 --paxos.peers=ws://localhost:8081/paxos,ws://localhost:8082/paxos,ws://localhost:8083/paxos
-java -jar target/superanna-0.0.1-SNAPSHOT.jar --server.port=8083 --paxos.node-id=3 --paxos.data-dir=./data/node3 --paxos.peers=ws://localhost:8081/paxos,ws://localhost:8082/paxos,ws://localhost:8083/paxos
+java -jar target/paxos-selection-0.0.1-SNAPSHOT.jar --server.port=8081 --paxos.node-id=1 --paxos.data-dir=./data/node1 --paxos.peers=ws://localhost:8081/paxos,ws://localhost:8082/paxos,ws://localhost:8083/paxos
+java -jar target/paxos-selection-0.0.1-SNAPSHOT.jar --server.port=8082 --paxos.node-id=2 --paxos.data-dir=./data/node2 --paxos.peers=ws://localhost:8081/paxos,ws://localhost:8082/paxos,ws://localhost:8083/paxos
+java -jar target/paxos-selection-0.0.1-SNAPSHOT.jar --server.port=8083 --paxos.node-id=3 --paxos.data-dir=./data/node3 --paxos.peers=ws://localhost:8081/paxos,ws://localhost:8082/paxos,ws://localhost:8083/paxos
 ```
 
 Start each candidate with `curl http://localhost:8081/show/start` (and ports

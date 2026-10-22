@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.junit.Assert.*;
 
 /** Deterministic multi-node protocol tests; no sleeps, wall clock, or shared node state. */
-public class SuperannaApplicationTests {
+public class PaxosLeaseClusterTest {
     @Rule public TemporaryFolder temporary = new TemporaryFolder();
     private final AtomicLong clock = new AtomicLong();
     private final List<State> opened = new ArrayList<>();
