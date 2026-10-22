@@ -6,6 +6,9 @@ package com.luairan.service.context;
  */
 public class Response {
     private long ballotNumber;
+    private long highestPromised;
+    public long getHighestPromised() { return highestPromised; }
+    public void setHighestPromised(long value) { highestPromised = value; }
     private Type type;
     private Proposal accpetedProposal;
 

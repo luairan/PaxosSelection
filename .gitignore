@@ -1,6 +1,6 @@
 # Created by .ignore support plugin (hsz.mobi)
 .idea/
-superanna.iml
+paxos-selection.iml
 
 .DS_Store
 ### Java template
@@ -27,3 +27,6 @@ release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
+
+# Durable node ballot sequences (never commit runtime identity state)
+data/

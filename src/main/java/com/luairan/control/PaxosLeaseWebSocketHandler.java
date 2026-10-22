@@ -16,7 +16,7 @@ import java.util.TreeMap;
 public class PaxosLeaseWebSocketHandler extends TextWebSocketHandler {
 
 
-    private static final Map<String, WebSocketSession> users = new TreeMap<>();
+    private static final Map<String, WebSocketSession> users = new java.util.concurrent.ConcurrentHashMap<>();
     private AcceptorRequestHandler acceptorRequestHandler;
     private Logger log = LoggerFactory.getLogger(PaxosLeaseWebSocketHandler.class);
 

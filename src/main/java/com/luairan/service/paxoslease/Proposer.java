@@ -1,140 +1,56 @@
 package com.luairan.service.paxoslease;
 
-
-import com.alibaba.fastjson.JSON;
 import com.luairan.service.context.*;
+import java.util.*;
 
-import java.util.Date;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
+/** One election attempt. Responses are counted once per configured peer and phase. */
 public class Proposer {
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    //放弃成为主节点的时间间隔
-    private long peroidTime = Long.parseLong("30");
-    private State state;
-    private ScheduledFuture<?> scheduledFuture;
-    private volatile Proposal proposal;
-    private final AtomicInteger proposerOne;
-    private final AtomicInteger proposerTwo ;
-    private final AtomicBoolean proposerOneFinished;
-    private final AtomicBoolean proposerTwoFinished;
-    public Proposer(State state,int proposerNum) {
-        this.state = state;
-        this.proposerOne = new AtomicInteger(proposerNum);
-        this.proposerTwo = new AtomicInteger(proposerNum);
-        proposerOneFinished = new AtomicBoolean(false);
-        proposerTwoFinished = new AtomicBoolean(false);
+    private final State state;
+    private final Set<String> peers, prepared = new HashSet<>(), accepted = new HashSet<>();
+    private final long ballot;
+    private final int quorum;
+    private long sentAt;
+    private boolean requestIssued;
+    private boolean phaseTwo, finished, cancelled;
+    public Proposer(State state, Collection<String> peers) {
+        this.state = state; this.peers = new HashSet<>(peers);
+        if (this.peers.isEmpty()) throw new IllegalArgumentException("Empty membership");
+        quorum = this.peers.size() / 2 + 1; ballot = state.nextBallotNumber();
     }
-
-    /**
-     * 一个新提案的提出
-     *
-     * @return
-     */
-    public Request propose() {
-        Request request = new Request();
-        request.setType(Type.PrepareRequest);
-        request.setBallotNumber(state.nextBallotNumber());
-        return request;
+    public Request propose() { return request(Type.PrepareRequest); }
+    private Request request(Type type) { Request r = new Request(); r.setType(type); r.setBallotNumber(ballot); return r; }
+    public synchronized boolean receivePrepare(String peer, Response r) {
+        if (!valid(peer, r) || phaseTwo || r.getType() != Type.PrepareResponse) return false;
+        Proposal p = r.getAccpetedProposal();
+        if (p != null && !state.getNodeId().equals(p.getMachineId())) return false;
+        prepared.add(peer);
+        if (prepared.size() < quorum) return false;
+        phaseTwo = true; return true;
     }
-
-    /**
-     * 一阶段提交后 从Acceptor 获取的最大编号已经被确认的正式议案
-     * @param response
-     * @return
-     */
-    public void reciveResponseOne(Response response) {
-        if (response.getBallotNumber() != state.getBallotNumber())
-            return ;
-        setProposalOne(response.getAccpetedProposal());
-//        if (response.getAccpetedProposal() == null || proposal.getSingleNode().getAddress().equals(singleNode.getAddress()))
-        if (response.getAccpetedProposal() == null)
-            proposerOne.decrementAndGet();
+    public synchronized Request prepareRequestOne() {
+        if (!phaseTwo || cancelled) throw new IllegalStateException("Prepare quorum required");
+        if (!requestIssued) { sentAt = state.now(); requestIssued = true; }
+        Request r = request(Type.ProposeRequest);
+        Proposal p = new Proposal(); p.setMachineId(state.getNodeId()); p.setProposerId(Long.toString(ballot));
+        p.setTimeout(State.MAX_LEASE_MILLIS); r.setProposal(p); return r;
     }
-
-
-    /**
-     * 准备二阶段 所使用的提案
-     * @return
-     */
-    public Request prepareRequestOne() {
-        if (scheduledFuture != null) scheduledFuture.cancel(false);
-        scheduledFuture = scheduler.schedule(new TimeOut(), peroidTime, TimeUnit.SECONDS);
-        Request request = new Request();
-        request.setType(Type.ProposeRequest);
-        request.setBallotNumber(state.getBallotNumber());
-        Proposal proposal = new Proposal();
-        proposal.setProposerId(state.getBallotNumber() + "");
-        proposal.setTimeout(10000);
-        request.setProposal(proposal);
-        return request;
+    public synchronized boolean receiveAccept(String peer, Response r) {
+        if (!valid(peer, r) || !phaseTwo || !requestIssued || finished || r.getType() != Type.ProposeResponse) return false;
+        Proposal p = r.getAccpetedProposal();
+        if (p == null || !state.getNodeId().equals(p.getMachineId()) || !Long.toString(ballot).equals(p.getProposerId())) return false;
+        if (state.now() - sentAt >= State.OWNER_LEASE_MILLIS * 1000000L) { cancelled = true; return false; }
+        accepted.add(peer);
+        if (accepted.size() < quorum) return false;
+        finished = true; state.grantOwnership(sentAt); return true;
     }
-
-    public ScheduledFuture<?> getScheduledFuture() {
-        return this.scheduledFuture;
+    private boolean valid(String peer, Response r) {
+        return !cancelled && peers.contains(peer) && r != null && r.getBallotNumber() == ballot;
     }
-
-    public void reciveResponseTwo(Response response) {
-        if (response.getBallotNumber() != state.getBallotNumber())
-            return;
-        setProposalOne(response.getAccpetedProposal());
-        proposerTwo.decrementAndGet();
+    public synchronized void cancel() { cancelled = true; }
+    public synchronized boolean isFinished() { return finished; }
+    public synchronized long getSentAt() {
+        if (!requestIssued) throw new IllegalStateException("Phase two has not been sent");
+        return sentAt;
     }
-
-    public void proposeResonseTwo() {
-        System.out.println(new Date() + "\t" + "成为主节点");
-        state.setLeaseOwner(true);
-    }
-
-    public Proposal getProposalOne() {
-        return proposal;
-    }
-
-    public synchronized void setProposalOne(Proposal proposal) {
-        System.out.println(new Date() + "\t" + "\t   一阶段获取" + JSON.toJSONString(proposal));
-        this.proposal = proposal;
-    }
-
-    private class TimeOut implements Runnable {
-        @Override
-        public void run() {
-            state.setLeaseOwner(false);
-            System.out.println(new Date() + "\t" + "放弃主节点");
-        }
-    }
-
-
-    public int getProposerOne() {
-        return proposerOne.get();
-    }
-
-    public int getProposerTwo() {
-        return proposerTwo.get();
-    }
-
-    public boolean getProposerOneFinished() {
-        return proposerOneFinished.get();
-    }
-
-    public boolean  getProposerTwoFinished() {
-        return proposerTwoFinished.get();
-    }
-
-    public boolean compareAndSetOne(boolean oldValue,boolean newValue){
-       return proposerOneFinished.compareAndSet(oldValue,newValue);
-    }
-
-
-    public boolean compareAndSetTwo(boolean oldValue,boolean newValue){
-        return proposerTwoFinished.compareAndSet(oldValue,newValue);
-    }
+    public long getBallot() { return ballot; }
 }
-
-
-
-
