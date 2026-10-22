@@ -67,8 +67,9 @@ a separate admin bearer token. See SECURITY.md for TLS and rotation requirements
 
 Applications must check `State.isLeaseOwner()` before each operation. A boolean
 check cannot stop an operation already paused or in flight: production writes
-also need fencing enforced by the destination system. This patch does not add
-storage fencing or turn the old Spring Boot demo into a production-ready service.
+also need fencing enforced by the destination system. The optional JDBC reference store adds fencing for its own business writes; see
+FENCING.md. Other destinations need their own fencing. This is not a general
+production-readiness guarantee.
 The application uses Java 17, Spring Boot 3.5.16, Spring Security and the Boot-managed
 Jackson serializer; Fastjson and unused legacy dependencies have been removed. The refreshed script-only Maven Wrapper downloads Maven 3.9.9 without a wrapper JAR;
 CI uses the same wrapper. An installed Maven 3.6.3+ is also supported.
@@ -81,3 +82,6 @@ Additional regressions cover opposite clock rates, recovery under drift,
 phase-two retransmission deadlines, blocked minority sends and slow quorum
 confirmations. Networking uses one bounded ordered worker per peer; renewal is
 scheduled relative to the original phase-two timestamp rather than confirmation.
+
+Optional shared JDBC business persistence and its PostgreSQL CI tests are
+documented in [FENCING.md](FENCING.md). It is disabled by default.

@@ -65,6 +65,9 @@ class ApiSecurityTest {
             .buildAsync(URI.create("ws://localhost:" + port + "/paxos"), new WebSocket.Listener() { }).join();
         socket.abort();
     }
+    @Test void businessApiIsAbsentByDefault() throws Exception {
+        assertEquals(404, call("/business/entries/key", "GET", ADMIN).statusCode());
+    }
     @Test void rejectsAbsentWeakOrSharedSecrets() {
         assertThrows(IllegalArgumentException.class, () -> new SecurityTokens("", ""));
         assertThrows(IllegalArgumentException.class, () -> new SecurityTokens("short", ADMIN));

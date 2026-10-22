@@ -23,6 +23,7 @@ secrets, not sentences. Authorization compares bytes using constant-time equalit
 | `/show/showMater` | GET | Admin bearer token |
 | `/show/start` | POST | Admin bearer token |
 | `/show/stop` | POST | Admin bearer token |
+| `/business/entries/{key}` (optional) | GET / PUT | Admin bearer token |
 
 Missing/invalid credentials return 401; valid credentials for the wrong role
 return 403. Node credentials cannot manage elections; admin credentials cannot
@@ -86,3 +87,7 @@ regressions reproduce the leak before the fix and verify that the redirect targe
 receives **no request at all** afterward. The original configured peer still
 receives its expected Authorization header. These tests exercise the packaged
 Tomcat client so that future dependency changes cannot silently undo the policy.
+
+The optional shared JDBC business API uses the same admin role. Its database
+credentials are separate from node/admin tokens; see FENCING.md for deployment
+and storage authorization requirements.

@@ -7,6 +7,24 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: fencing_test
+          POSTGRES_USER: fencing_test
+          POSTGRES_PASSWORD: ci-only-fencing-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fencing_test -d fencing_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      FENCING_TEST_JDBC_URL: jdbc:postgresql://localhost:5432/fencing_test
+      FENCING_TEST_DB_USER: fencing_test
+      FENCING_TEST_DB_PASSWORD: ci-only-fencing-password
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

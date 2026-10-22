@@ -2,6 +2,8 @@
 
 # 基于spring-boot实现的标准PaxosLease选主算法
 
+可选的共享数据库业务写入与 fencing 示例见 [FENCING.md](FENCING.md)。
+
 启动前必须配置不同的节点令牌和管理员令牌，详见 [SECURITY.md](SECURITY.md)。运行环境为 Java 17。
 
 当前实现的集群配置、故障恢复约束和多节点测试说明见 [DEVELOPMENT.md](DEVELOPMENT.md)。
