@@ -1,13 +1,13 @@
 package com.luairan.service.paxoslease;
 
-import com.alibaba.fastjson.JSON;
+import com.luairan.service.util.Json;
 import com.luairan.service.context.*;
 import com.luairan.service.websocket.WebSocketService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import javax.annotation.*;
+import jakarta.annotation.*;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.*;
@@ -32,6 +32,8 @@ public class ProposerServiceImpl implements ProposerService {
             if (!("ws".equals(uri.getScheme()) || "wss".equals(uri.getScheme())) || uri.getHost() == null || uri.getPort() < 1
                     || !"/paxos".equals(uri.getPath()) || uri.getQuery() != null || uri.getFragment() != null || uri.getUserInfo() != null)
                 throw new IllegalArgumentException("Peers must be ws(s)://host:port/paxos");
+            if ("ws".equals(uri.getScheme()) && !Set.of("localhost", "127.0.0.1", "[::1]", "::1").contains(uri.getHost().toLowerCase(Locale.ROOT)))
+                throw new IllegalArgumentException("Remote peers require wss to protect node credentials");
             if (!unique.add(uri.toString())) throw new IllegalArgumentException("Duplicate peer");
         }
         peers = new ArrayList<>(unique);
@@ -61,7 +63,7 @@ public class ProposerServiceImpl implements ProposerService {
     public synchronized void proposerTwoBefore() { broadcast(proposer.prepareRequestOne()); }
     public synchronized void proposerTwoAfter() { nextAttempt = proposer.getSentAt() + TimeUnit.SECONDS.toNanos(10); }
     private void broadcast(Request request) {
-        String message = JSON.toJSONString(request);
+        String message = Json.toJSONString(request);
         final long ballot = request.getBallotNumber();
         for (String peer : peers) {
             // One ordered, bounded queue per peer: a stalled minority cannot hold

@@ -3,24 +3,29 @@ package com.luairan.service.util.websocket;
 import java.io.IOException;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
-import javax.websocket.*;
+import jakarta.websocket.*;
 
 /** Bounded connection/send operations. A failed endpoint is discarded by its owner. */
 public class WebSocketClientEndpoint extends Endpoint {
     private volatile Session userSession;
     private volatile MessageHandler messageHandler;
-    public WebSocketClientEndpoint(URI endpointURI) {
+    public WebSocketClientEndpoint(URI endpointURI) { this(endpointURI, null); }
+    public WebSocketClientEndpoint(URI endpointURI, String authorization) {
         try {
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
             container.setAsyncSendTimeout(3000);
-            ClientEndpointConfig config = ClientEndpointConfig.Builder.create().build();
+            ClientEndpointConfig config = ClientEndpointConfig.Builder.create().configurator(new ClientEndpointConfig.Configurator() {
+                @Override public void beforeRequest(java.util.Map<String, java.util.List<String>> headers) {
+                    if (authorization != null) headers.put("Authorization", java.util.List.of(authorization));
+                }
+            }).build();
             config.getUserProperties().put("org.apache.tomcat.websocket.IO_TIMEOUT_MS", "3000");
             container.connectToServer(this, config, endpointURI);
-        } catch (Exception e) { throw new IllegalStateException("WebSocket connect failed", e); }
+        } catch (Exception e) { throw new IllegalStateException("WebSocket connect failed"); }
     }
     @Override public void onOpen(Session session, EndpointConfig config) {
         userSession = session;
-        session.addMessageHandler(new javax.websocket.MessageHandler.Whole<String>() {
+        session.addMessageHandler(new jakarta.websocket.MessageHandler.Whole<String>() {
             @Override public void onMessage(String message) {
                 MessageHandler handler = messageHandler;
                 if (handler != null) handler.handleMessage(session, message);

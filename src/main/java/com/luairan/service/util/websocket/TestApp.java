@@ -1,6 +1,6 @@
 package com.luairan.service.util.websocket;
 
-import javax.websocket.Session;
+import jakarta.websocket.Session;
 import java.net.URI;
 import java.net.URISyntaxException;
 

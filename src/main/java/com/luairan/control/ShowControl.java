@@ -1,35 +1,24 @@
 package com.luairan.control;
 
-
-import com.alibaba.fastjson.JSON;
 import com.luairan.service.context.State;
 import com.luairan.service.paxoslease.ProposerService;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-
-import javax.annotation.Resource;
+import org.springframework.web.bind.annotation.*;
+import jakarta.annotation.Resource;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/show")
 public class ShowControl {
-    @Resource
-    private State state;
-
-    @Resource
-    private ProposerService proposerService;
-
-    @RequestMapping(value = "/showMater", method = RequestMethod.GET)
-    public String getNewForm() {
-        return JSON.toJSONString(state);
+    @Resource private State state;
+    @Resource private ProposerService proposerService;
+    @GetMapping("/showMater")
+    public Map<String, Object> status() {
+        return Map.of("nodeId", state.getNodeId(), "leaseOwner", state.isLeaseOwner(), "ballotNumber", state.getBallotNumber());
     }
-
-
-    @RequestMapping(value = "/start", method = RequestMethod.GET)
-    public String start() throws InterruptedException {
-        proposerService.proposerStart();
-        return "ok";
+    @PostMapping("/start") public Map<String, String> start() throws InterruptedException {
+        proposerService.proposerStart(); return Map.of("status", "started");
     }
-
-
+    @PostMapping("/stop") public Map<String, String> stop() {
+        proposerService.cancle(); return Map.of("status", "stopped");
+    }
 }
