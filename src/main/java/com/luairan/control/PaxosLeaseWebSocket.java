@@ -9,7 +9,7 @@ import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 
 @Configuration
 @EnableWebSocket
@@ -21,7 +21,7 @@ public class PaxosLeaseWebSocket implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(systemWebSocketHandler(), "/paxos").setAllowedOrigins("*");
+        registry.addHandler(systemWebSocketHandler(), "/paxos");
     }
 
     @Bean

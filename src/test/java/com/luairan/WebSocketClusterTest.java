@@ -5,7 +5,7 @@ import com.luairan.service.paxoslease.ProposerServiceImpl;
 import com.luairan.service.websocket.WebSocketServiceImpl;
 import org.junit.Test;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.context.embedded.EmbeddedWebApplicationContext;
+import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.util.ReflectionTestUtils;
 import java.nio.file.*;
@@ -28,14 +28,14 @@ public class WebSocketClusterTest {
             for (int id = 1; id <= 3; id++) {
                 SpringApplication app = new SpringApplication(Application.class);
                 app.setRegisterShutdownHook(false);
-                ConfigurableApplicationContext context = app.run("--server.port=0", "--paxos.node-id=" + id,
+                ConfigurableApplicationContext context = app.run("--server.port=0", "--paxos.security.node-token=integration-node-token-01234567890123456789", "--paxos.security.admin-token=integration-admin-token-01234567890123456789", "--paxos.node-id=" + id,
                         "--paxos.data-dir=" + directory, "--logging.level.root=ERROR", "--spring.main.banner-mode=off");
                 contexts.add(context);
                 State state = context.getBean(State.class);
                 ReflectionTestUtils.setField(state, "clock", (LongSupplier) now::get);
                 ReflectionTestUtils.setField(state, "startedAt", 0L);
                 states.add(state); services.add(context.getBean(ProposerServiceImpl.class));
-                int port = ((EmbeddedWebApplicationContext) context).getEmbeddedServletContainer().getPort();
+                int port = ((ServletWebServerApplicationContext) context).getWebServer().getPort();
                 peers.add("ws://localhost:" + port + "/paxos");
             }
             for (ProposerServiceImpl service : services) {

@@ -1,15 +1,15 @@
 package com.luairan.service.paxoslease;
 
-import com.alibaba.fastjson.JSON;
+import com.luairan.service.util.Json;
 import com.luairan.service.context.Request;
 import com.luairan.service.context.Response;
 import com.luairan.service.context.Type;
-import org.apache.commons.lang.StringUtils;
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 import java.io.IOException;
 
 
@@ -22,18 +22,18 @@ public class AcceptorRequestHandler {
     @Resource
     private AcceptorService acceptorService;
     public void handleMessage(WebSocketSession session, String message) throws IOException {
-        if (StringUtils.isNotBlank(message)) {
-            Request request = JSON.parseObject(message, Request.class);
+        if (message != null && !message.isBlank()) {
+            Request request = Json.parseObject(message, Request.class);
             //一阶段
             if (request.getType() == Type.PrepareRequest) {
                 Response response = acceptorService.prepareRequest(request);
-                System.out.println("acceptor send PrepareResponse :\t"+JSON.toJSONString(response));
-                session.sendMessage(new TextMessage(JSON.toJSONString(response)));
+                System.out.println("acceptor send PrepareResponse :\t"+Json.toJSONString(response));
+                session.sendMessage(new TextMessage(Json.toJSONString(response)));
                 //二阶段
             } else if (request.getType() == Type.ProposeRequest) {
                 Response response = acceptorService.proposeRequest(request);
-                System.out.println("acceptor send ProposeResponse :\t"+JSON.toJSONString(response));
-                session.sendMessage(new TextMessage(JSON.toJSONString(response)));
+                System.out.println("acceptor send ProposeResponse :\t"+Json.toJSONString(response));
+                session.sendMessage(new TextMessage(Json.toJSONString(response)));
             }
         }
     }

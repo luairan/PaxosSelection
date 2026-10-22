@@ -57,5 +57,5 @@ The safety argument depends on the assumptions above. There is no guarantee of
 continuous leadership during arbitrary message loss or sustained contention.
 There is no storage fencing: an operation paused after checking ownership may
 still run after its lease ends. Downstream systems must enforce fencing before
-using this demonstration for protected production writes. Endpoint authentication,
-dependency modernization and dynamic reconfiguration remain separate work.
+using this demonstration for protected production writes. Endpoint authentication and dependency modernization are implemented separately
+from the lease protocol; see SECURITY.md. Dynamic reconfiguration remains separate work.

@@ -2,7 +2,7 @@ package com.luairan.service.paxoslease;
 
 import com.luairan.service.context.*;
 import org.springframework.stereotype.Service;
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 
 @Service
 public class AcceptorServiceImpl implements AcceptorService {

@@ -6,7 +6,7 @@ maximum lease interval. Do not mix old and new binaries.
 
 ## Run a three-node cluster
 
-Build with JDK 8 and Maven: `mvn clean verify`. Run each command in a separate
+Build with JDK 17 and Maven 3.6.3+: `./mvnw clean verify`. Run each command in a separate
 terminal; the list of acceptors must be identical on every node:
 
 ```sh
@@ -15,8 +15,10 @@ java -jar target/paxos-selection-0.0.1-SNAPSHOT.jar --server.port=8082 --paxos.n
 java -jar target/paxos-selection-0.0.1-SNAPSHOT.jar --server.port=8083 --paxos.node-id=3 --paxos.data-dir=./data/node3 --paxos.peers=ws://localhost:8081/paxos,ws://localhost:8082/paxos,ws://localhost:8083/paxos
 ```
 
-Start each candidate with `curl http://localhost:8081/show/start` (and ports
-8082/8083). Inspect `http://localhost:8081/show/showMater`. Starting twice is
+Before starting, generate credentials as shown in [SECURITY.md](SECURITY.md).
+All nodes need the same node token; admin and node tokens must differ.
+Start each candidate with `curl -X POST -H "Authorization: Bearer $PAXOS_ADMIN_TOKEN" http://localhost:8081/show/start`
+(and ports 8082/8083). Read status with an authenticated GET to `/show/showMater`. Starting twice is
 idempotent. Recovery intentionally prevents grants during the first 30 seconds.
 The default configuration remains a one-node local demo.
 
@@ -39,7 +41,7 @@ The default configuration remains a one-node local demo.
 
 ## Tests
 
-`mvn verify` runs:
+`./mvnw verify` runs:
 
 - Three-node continuous renewal beyond multiple lease intervals.
 - Five-node majority/minority partition and takeover after expiry.
@@ -60,16 +62,16 @@ are regression tests, not an exhaustive model check or a multi-machine soak test
 The cluster is trusted, non-Byzantine and has fixed membership. Nodes must have
 monotonic clocks whose rates stay within +/-1% of elapsed real time; the 1-second
 owner margin covers this relative drift bound. Clock suspension, duplicate node
-identities and inconsistent membership are outside this guarantee. Use an
-isolated trusted network: the demo endpoints have no peer authentication.
+identities and inconsistent membership are outside this guarantee. Node WebSocket upgrades require a node bearer token; management endpoints require
+a separate admin bearer token. See SECURITY.md for TLS and rotation requirements.
 
 Applications must check `State.isLeaseOwner()` before each operation. A boolean
 check cannot stop an operation already paused or in flight: production writes
 also need fencing enforced by the destination system. This patch does not add
 storage fencing or turn the old Spring Boot demo into a production-ready service.
-The existing dependency versions are retained to keep the change focused; build
-with Java 8. The Maven wrapper JAR is absent from the original repository, so use
-an installed Maven (CI installs Java and uses the runner's Maven).
+The application uses Java 17, Spring Boot 3.5.16, Spring Security and the Boot-managed
+Jackson serializer; Fastjson and unused legacy dependencies have been removed. The refreshed script-only Maven Wrapper downloads Maven 3.9.9 without a wrapper JAR;
+CI uses the same wrapper. An installed Maven 3.6.3+ is also supported.
 
 ## Follow-up safety review
 

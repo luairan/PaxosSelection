@@ -3,7 +3,7 @@ package com.luairan;
 import com.luairan.service.context.*;
 import com.luairan.service.paxoslease.*;
 import com.luairan.service.websocket.WebSocketService;
-import com.alibaba.fastjson.JSON;
+import com.luairan.service.util.Json;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -31,7 +31,7 @@ public class ElectionSchedulingTest {
                 catch (InterruptedException e) { Thread.currentThread().interrupt(); }
                 return;
             }
-            Request r = JSON.parseObject(message, Request.class);
+            Request r = Json.parseObject(message, Request.class);
             AcceptorServiceImpl a = acceptors.get(peer);
             service.receive(peer, r.getType() == Type.PrepareRequest ? a.prepareRequest(r) : a.proposeRequest(r));
         };
