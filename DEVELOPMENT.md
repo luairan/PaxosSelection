@@ -70,3 +70,12 @@ storage fencing or turn the old Spring Boot demo into a production-ready service
 The existing dependency versions are retained to keep the change focused; build
 with Java 8. The Maven wrapper JAR is absent from the original repository, so use
 an installed Maven (CI installs Java and uses the runner's Maven).
+
+## Follow-up safety review
+
+See [SAFETY.md](SAFETY.md) for the quorum-intersection argument, the clock-drift
+inequalities and the distinction between lease ownership and fenced writes.
+Additional regressions cover opposite clock rates, recovery under drift,
+phase-two retransmission deadlines, blocked minority sends and slow quorum
+confirmations. Networking uses one bounded ordered worker per peer; renewal is
+scheduled relative to the original phase-two timestamp rather than confirmation.

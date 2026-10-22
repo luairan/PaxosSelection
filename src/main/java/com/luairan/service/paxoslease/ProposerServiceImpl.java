@@ -22,6 +22,7 @@ public class ProposerServiceImpl implements ProposerService {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private ScheduledFuture<?> task;
     private Proposer proposer;
+    private final Map<String, ExecutorService> senders = new HashMap<>();
     private long nextAttempt;
     private boolean running;
     @PostConstruct public void initialize() {
@@ -58,12 +59,23 @@ public class ProposerServiceImpl implements ProposerService {
         else if (proposer.receiveAccept(peer, response)) proposerTwoAfter();
     }
     public synchronized void proposerTwoBefore() { broadcast(proposer.prepareRequestOne()); }
-    public synchronized void proposerTwoAfter() { nextAttempt = state.now() + TimeUnit.SECONDS.toNanos(10); }
+    public synchronized void proposerTwoAfter() { nextAttempt = proposer.getSentAt() + TimeUnit.SECONDS.toNanos(10); }
     private void broadcast(Request request) {
         String message = JSON.toJSONString(request);
+        final long ballot = request.getBallotNumber();
         for (String peer : peers) {
-            try { webSocketService.sendMessage(peer, message); }
-            catch (Exception e) { log.warn("Cannot send to {}: {}", peer, e.toString()); }
+            // One ordered, bounded queue per peer: a stalled minority cannot hold
+            // the election lock, block other peers, or create an unbounded backlog.
+            ExecutorService sender = senders.computeIfAbsent(peer, key -> new ThreadPoolExecutor(
+                    1, 1, 0, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(1),
+                    new ThreadPoolExecutor.DiscardOldestPolicy()));
+            sender.execute(() -> {
+                synchronized (ProposerServiceImpl.this) {
+                    if (!running || proposer == null || proposer.getBallot() != ballot) return;
+                }
+                try { webSocketService.sendMessage(peer, message); }
+                catch (Exception e) { log.warn("Cannot send to {}: {}", peer, e.toString()); }
+            });
         }
     }
     public synchronized void cancle() {
@@ -72,5 +84,9 @@ public class ProposerServiceImpl implements ProposerService {
         if (proposer != null) proposer.cancel();
         state.revokeOwnership();
     }
-    @PreDestroy public synchronized void close() { cancle(); scheduler.shutdownNow(); }
+    @PreDestroy public synchronized void close() {
+        cancle(); scheduler.shutdownNow();
+        for (ExecutorService sender : senders.values()) sender.shutdownNow();
+        senders.clear();
+    }
 }

@@ -10,6 +10,7 @@ public class Proposer {
     private final long ballot;
     private final int quorum;
     private long sentAt;
+    private boolean requestIssued;
     private boolean phaseTwo, finished, cancelled;
     public Proposer(State state, Collection<String> peers) {
         this.state = state; this.peers = new HashSet<>(peers);
@@ -28,13 +29,13 @@ public class Proposer {
     }
     public synchronized Request prepareRequestOne() {
         if (!phaseTwo || cancelled) throw new IllegalStateException("Prepare quorum required");
-        sentAt = state.now();
+        if (!requestIssued) { sentAt = state.now(); requestIssued = true; }
         Request r = request(Type.ProposeRequest);
         Proposal p = new Proposal(); p.setMachineId(state.getNodeId()); p.setProposerId(Long.toString(ballot));
         p.setTimeout(State.MAX_LEASE_MILLIS); r.setProposal(p); return r;
     }
     public synchronized boolean receiveAccept(String peer, Response r) {
-        if (!valid(peer, r) || !phaseTwo || finished || r.getType() != Type.ProposeResponse) return false;
+        if (!valid(peer, r) || !phaseTwo || !requestIssued || finished || r.getType() != Type.ProposeResponse) return false;
         Proposal p = r.getAccpetedProposal();
         if (p == null || !state.getNodeId().equals(p.getMachineId()) || !Long.toString(ballot).equals(p.getProposerId())) return false;
         if (state.now() - sentAt >= State.OWNER_LEASE_MILLIS * 1000000L) { cancelled = true; return false; }
@@ -47,5 +48,9 @@ public class Proposer {
     }
     public synchronized void cancel() { cancelled = true; }
     public synchronized boolean isFinished() { return finished; }
+    public synchronized long getSentAt() {
+        if (!requestIssued) throw new IllegalStateException("Phase two has not been sent");
+        return sentAt;
+    }
     public long getBallot() { return ballot; }
 }
