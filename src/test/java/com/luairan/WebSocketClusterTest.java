@@ -38,8 +38,10 @@ public class WebSocketClusterTest {
                 int port = ((ServletWebServerApplicationContext) context).getWebServer().getPort();
                 peers.add("ws://localhost:" + port + "/paxos");
             }
+            // Embedded servers receive ephemeral ports only after context startup.
+            // Replace this fixture's immutable membership before starting any election.
             for (ProposerServiceImpl service : services) {
-                ReflectionTestUtils.setField(service, "configuredPeers", String.join(",", peers)); service.initialize();
+                ReflectionTestUtils.setField(service, "peers", List.copyOf(peers));
             }
             now.set(TimeUnit.SECONDS.toNanos(30));
             // Deterministic contender; protocol tests cover competing candidates and partitions.
