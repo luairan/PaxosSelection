@@ -1,70 +1,42 @@
 package com.luairan.service.paxoslease;
 
-import com.luairan.service.context.Request;
-import com.luairan.service.context.Response;
-import com.luairan.service.context.State;
-import com.luairan.service.context.Type;
+import com.luairan.service.context.*;
 import org.springframework.stereotype.Service;
-
 import javax.annotation.Resource;
-import java.util.Date;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
-/**
- * Created by luairan on 16/9/5.
- */
 
 @Service
 public class AcceptorServiceImpl implements AcceptorService {
-
-    private static long peroidTime = Long.parseLong("30");
-
-    @Resource
-    private State state;
-
-    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
-    private ScheduledFuture<?> scheduledFuture;
-
-    @Override
+    @Resource private State state;
+    public AcceptorServiceImpl() { }
+    public AcceptorServiceImpl(State state) { this.state = state; }
     public Response prepareRequest(Request request) {
-        Response response = new Response();
-        if (request.getBallotNumber() <= state.getHighestPromissed()) {
-            response.setType(Type.Closed);
+        synchronized (state) {
+            Response response = reply(request, Type.Closed);
+            if (!state.isReady() || request.getBallotNumber() <= 0 || request.getBallotNumber() < state.getHighestPromissed()) return response;
+            state.setHighestPromissed(request.getBallotNumber());
+            response.setType(Type.PrepareResponse);
+            response.setAccpetedProposal(state.getAccpetedProposal());
             return response;
         }
-        state.setHighestPromissed(request.getBallotNumber());
-        response.setType(Type.PrepareResponse);
-        response.setBallotNumber(request.getBallotNumber());
-        response.setAccpetedProposal(state.getAccpetedProposal());
-        return response;
     }
-
-    @Override
     public Response proposeRequest(Request request) {
-        Response response = new Response();
-        if (request.getBallotNumber() < state.getHighestPromissed()) {
-            response.setType(Type.Closed);
+        synchronized (state) {
+            Response response = reply(request, Type.Closed);
+            Proposal p = request.getProposal();
+            if (!state.isReady() || request.getBallotNumber() <= 0 || request.getBallotNumber() < state.getHighestPromissed()
+                    || p == null || p.getMachineId() == null || p.getMachineId().isEmpty()
+                    || p.getTimeout() <= 0 || p.getTimeout() > State.MAX_LEASE_MILLIS) return response;
+            Proposal previous = state.getAccpetedProposal();
+            // A higher ballot never revokes an unexpired lease held by another node.
+            if (previous != null && !previous.getMachineId().equals(p.getMachineId())) return response;
+            state.setHighestPromissed(request.getBallotNumber());
+            state.accept(p);
+            response.setType(Type.ProposeResponse); response.setAccpetedProposal(state.getAccpetedProposal());
             return response;
         }
-        state.setAccpetedProposal(request.getProposal());
-        if (scheduledFuture != null) scheduledFuture.cancel(false);
-        scheduledFuture = scheduler.schedule(new TimeOut(), peroidTime, TimeUnit.SECONDS);
-        response.setType(Type.ProposeResponse);
-        response.setBallotNumber(request.getBallotNumber());
-        response.setAccpetedProposal(request.getProposal());
-        return response;
     }
-
-
-    private class TimeOut implements Runnable {
-        @Override
-        public void run() {
-            state.setAccpetedProposal(null);
-            System.out.println(new Date() + "\t" + "acceptor - 释放锁");
-        }
+    private Response reply(Request request, Type type) {
+        Response r = new Response(); r.setType(type); r.setBallotNumber(request.getBallotNumber());
+        r.setHighestPromised(state.getHighestPromissed()); return r;
     }
 }

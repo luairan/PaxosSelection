@@ -2,6 +2,9 @@
 
 # 基于spring-boot实现的标准PaxosLease选主算法
 
+当前实现的集群配置、故障恢复约束和多节点测试说明见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+升级需要停止旧版本集群，等待旧租约过期后统一启动新版本。
+
 
 基本原理译文摘录自 http://dsdoc.net/paxoslease/
 

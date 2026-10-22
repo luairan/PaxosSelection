@@ -1,153 +1,76 @@
 package com.luairan.service.paxoslease;
 
 import com.alibaba.fastjson.JSON;
-import com.luairan.service.context.Proposal;
-import com.luairan.service.context.Request;
-import com.luairan.service.context.State;
+import com.luairan.service.context.*;
 import com.luairan.service.websocket.WebSocketService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import javax.annotation.Resource;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
-/**
- * Created by luairan on 16/9/5.
- */
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import javax.annotation.*;
+import java.net.URI;
+import java.util.*;
+import java.util.concurrent.*;
 
 @Service
 public class ProposerServiceImpl implements ProposerService {
-
-    private static long realProposeSeconds = Long.parseLong("30");
-    private static int oneFailRetrySeconds = Integer.parseInt("6");
-    private static long waitSeconds = Long.parseLong("3");
-    private static long successReProposeSeconds = Long.parseLong("20");
-    private static List<String> urlList;
-
-    static {
-        urlList = new ArrayList<>();
-        urlList.add("ws://localhost:8080/paxos");
-    }
-    @Resource
-    private WebSocketService webSocketService;
-    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
-    @Resource
-    private State state;
-
-    private volatile Proposer proposer;
-    private ScheduledFuture<?> scheduledFuture;
-    private ScheduledFuture<?> scheduledFutureProposer;
-    private Random random = new Random();
-
-    @Override
-    public Proposer getCurrentProposer() {
-        return proposer;
-    }
-
-
-    public synchronized void setProposer(Proposer proposer) {
-        this.proposer = proposer;
-    }
-
-
-    @Override
-    public void proposerTwoBefore() {
-
-        Request request = proposer.prepareRequestOne();
-        scheduledFutureProposer = proposer.getScheduledFuture();
-        String jsonInfo = JSON.toJSONString(request);
-        // 执行paxoslease 第二个阶段
-        for (String url : urlList) {
-            try {
-                webSocketService.sendMessage(url, jsonInfo);
-            } catch (URISyntaxException e) {
-                e.printStackTrace();
-            }
+    private final Logger log = LoggerFactory.getLogger(getClass());
+    @Value("${paxos.peers:ws://localhost:8080/paxos}") private String configuredPeers;
+    @Resource private WebSocketService webSocketService;
+    @Resource private State state;
+    private List<String> peers;
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledFuture<?> task;
+    private Proposer proposer;
+    private long nextAttempt;
+    private boolean running;
+    @PostConstruct public void initialize() {
+        Set<String> unique = new LinkedHashSet<>();
+        for (String entry : configuredPeers.split(",")) {
+            URI uri = URI.create(entry.trim()).normalize();
+            if (!("ws".equals(uri.getScheme()) || "wss".equals(uri.getScheme())) || uri.getHost() == null || uri.getPort() < 1
+                    || !"/paxos".equals(uri.getPath()) || uri.getQuery() != null || uri.getFragment() != null || uri.getUserInfo() != null)
+                throw new IllegalArgumentException("Peers must be ws(s)://host:port/paxos");
+            if (!unique.add(uri.toString())) throw new IllegalArgumentException("Duplicate peer");
         }
-        scheduler.schedule(new Runnable() {
-            @Override
-            public void run() {
-                boolean twoFinished = proposer.getProposerTwoFinished();
-                if (!twoFinished) {
-                    scheduledFuture.cancel(false);
-                    scheduledFuture = scheduler.scheduleAtFixedRate(new TimePropose(), 0L, realProposeSeconds, TimeUnit.SECONDS);
-                }
-            }
-        }, waitSeconds, TimeUnit.SECONDS);
+        peers = new ArrayList<>(unique);
     }
-
-    @Override
-    public void proposerTwoAfter() {
-        if (scheduledFuture != null)
-            scheduledFuture.cancel(false);
-        scheduledFuture = scheduler.scheduleAtFixedRate(new TimePropose(), successReProposeSeconds, realProposeSeconds, TimeUnit.SECONDS);
-        proposer.proposeResonseTwo();
+    public synchronized Proposer getCurrentProposer() { return proposer; }
+    public synchronized void proposerStart() { proposer(); }
+    public synchronized void proposer() {
+        if (running) return;
+        running = true; nextAttempt = state.now();
+        task = scheduler.scheduleWithFixedDelay(this::tick, 0, 100, TimeUnit.MILLISECONDS);
     }
-
-    @Override
-    public void proposerStart() throws InterruptedException {
-        int useNum = urlList.size() / 2 + 1;
-        Proposer proposer = new Proposer(state, useNum);
-        setProposer(proposer);
-        // 执行paxoslease 第一个阶段
-        Request request = proposer.propose();
-        String jsonInfo = JSON.toJSONString(request);
-        for (String url : urlList) {
-            try {
-                webSocketService.sendMessage(url, jsonInfo);
-            } catch (URISyntaxException e) {
-                e.printStackTrace();
-            }
+    private synchronized void tick() {
+        if (!running || !state.isReady() || state.now() - nextAttempt < 0) return;
+        try {
+            if (proposer != null) proposer.cancel();
+            proposer = new Proposer(state, peers);
+            nextAttempt = state.now() + TimeUnit.MILLISECONDS.toNanos(3000 + ThreadLocalRandom.current().nextInt(1000));
+            broadcast(proposer.propose());
+        } catch (RuntimeException e) { log.error("Election attempt failed", e); }
+    }
+    public synchronized void receive(String peer, Response response) {
+        if (!running || proposer == null || !peers.contains(peer) || response.getBallotNumber() != proposer.getBallot()) return;
+        if (response.getType() == Type.Closed) { state.observeBallot(response.getHighestPromised()); return; }
+        if (proposer.receivePrepare(peer, response)) proposerTwoBefore();
+        else if (proposer.receiveAccept(peer, response)) proposerTwoAfter();
+    }
+    public synchronized void proposerTwoBefore() { broadcast(proposer.prepareRequestOne()); }
+    public synchronized void proposerTwoAfter() { nextAttempt = state.now() + TimeUnit.SECONDS.toNanos(10); }
+    private void broadcast(Request request) {
+        String message = JSON.toJSONString(request);
+        for (String peer : peers) {
+            try { webSocketService.sendMessage(peer, message); }
+            catch (Exception e) { log.warn("Cannot send to {}: {}", peer, e.toString()); }
         }
-
-        scheduler.schedule(new Runnable() {
-            @Override
-            public void run() {
-                boolean oneFinished = proposer.getProposerOneFinished();
-                if (!oneFinished) {
-                    Proposal proposal = proposer.getProposalOne();
-                    if (proposal != null) {
-                        scheduledFuture.cancel(false);
-                        scheduledFuture = scheduler.schedule(new TimePropose(), realProposeSeconds, TimeUnit.SECONDS);
-                        return;
-                    }
-                    scheduledFuture.cancel(false);
-                    scheduledFuture = scheduler.schedule(new TimePropose(), random.nextInt(oneFailRetrySeconds), TimeUnit.SECONDS);
-                    return;
-                }
-            }
-        }, waitSeconds, TimeUnit.SECONDS);
     }
-
-
-    @Override
-    public synchronized void proposer() throws InterruptedException {
-        if (scheduledFuture != null) scheduledFuture.cancel(false);
-        scheduledFuture = scheduler.scheduleAtFixedRate(new TimePropose(), 0L, realProposeSeconds, TimeUnit.SECONDS);
-    }
-
-
-    @Override
     public synchronized void cancle() {
-        if (scheduledFuture != null) scheduledFuture.cancel(false);
+        running = false;
+        if (task != null) task.cancel(false);
+        if (proposer != null) proposer.cancel();
+        state.revokeOwnership();
     }
-
-    private class TimePropose implements Runnable {
-        @Override
-        public void run() {
-            try {
-                proposerStart();
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
-    }
+    @PreDestroy public synchronized void close() { cancle(); scheduler.shutdownNow(); }
 }
-
