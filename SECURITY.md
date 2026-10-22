@@ -46,6 +46,9 @@ Plain `ws://` peer URLs are allowed only for literal loopback addresses or
 configure HTTPS certificates and a bind address using Spring Boot's standard
 `server.ssl.*`/`server.address` settings. Use trusted certificates; never disable
 TLS verification. Management callers must also use HTTPS on remote networks.
+Client WebSocket redirects are disabled, including same-host redirects. A 3xx
+response fails the connection instead of replaying the Authorization header to a
+new address or downgrading TLS. Configure each peer's final WebSocket URL directly.
 There is no redirect-based authentication and secrets are not sent in URLs.
 
 Tokens are loaded at startup. Rotate by stopping all members, waiting for old
@@ -73,3 +76,13 @@ Upgrade all members together. Old processes do not supply authentication headers
 and cannot connect to new nodes. Follow the lease waiting period in DEVELOPMENT.md.
 This upgrade is not a guarantee that all dependencies are vulnerability-free;
 continue updating managed patch versions and monitoring security advisories.
+
+## Security review regression
+
+Tomcat's default redirect handling reuses the endpoint configurator. Before the
+explicit zero-redirect limit, a configured peer returning 301/302/303/307 could
+cause the node token to be sent to another destination. Four real HTTP-server
+regressions reproduce the leak before the fix and verify that the redirect target
+receives **no request at all** afterward. The original configured peer still
+receives its expected Authorization header. These tests exercise the packaged
+Tomcat client so that future dependency changes cannot silently undo the policy.

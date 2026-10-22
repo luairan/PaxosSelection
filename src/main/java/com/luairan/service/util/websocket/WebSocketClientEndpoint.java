@@ -20,6 +20,10 @@ public class WebSocketClientEndpoint extends Endpoint {
                 }
             }).build();
             config.getUserProperties().put("org.apache.tomcat.websocket.IO_TIMEOUT_MS", "3000");
+            // Tomcat otherwise follows redirects and calls beforeRequest again,
+            // attaching our bearer token to the new (possibly untrusted) target.
+            // Fixed membership must connect only to the explicitly configured URI.
+            config.getUserProperties().put("org.apache.tomcat.websocket.MAX_REDIRECTIONS", "0");
             container.connectToServer(this, config, endpointURI);
         } catch (Exception e) { throw new IllegalStateException("WebSocket connect failed"); }
     }
