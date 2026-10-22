@@ -82,14 +82,10 @@ class ApiSecurityTest {
             });
     }
     @Test void rejectsPlaintextRemotePeers() {
-        com.luairan.service.paxoslease.ProposerServiceImpl service = new com.luairan.service.paxoslease.ProposerServiceImpl();
-        org.springframework.test.util.ReflectionTestUtils.setField(service, "state", org.mockito.Mockito.mock(com.luairan.service.context.State.class));
-        try {
-            org.springframework.test.util.ReflectionTestUtils.setField(service, "configuredPeers", "ws://remote.example:8080/paxos");
-            assertThrows(IllegalArgumentException.class, service::initialize);
-            org.springframework.test.util.ReflectionTestUtils.setField(service, "configuredPeers", "wss://remote.example:8443/paxos");
-            assertDoesNotThrow(service::initialize);
-        } finally { service.close(); }
+        assertThrows(IllegalArgumentException.class,
+            () -> new com.luairan.service.paxoslease.PeerConfiguration("ws://remote.example:8080/paxos"));
+        assertDoesNotThrow(
+            () -> new com.luairan.service.paxoslease.PeerConfiguration("wss://remote.example:8443/paxos"));
     }
     @Test void rejectsPolymorphicAndUnknownProtocolFields() {
         assertThrows(IllegalArgumentException.class,
