@@ -21,8 +21,8 @@ public class State {
     private FileLock fileLock;
     private long sequence, ballotNumber, highestPromissed;
     private Proposal accpetedProposal;
-    private long acceptedAt, acceptedMillis, ownerAt, ownerMillis, startedAt;
-    private boolean leaseOwner;
+    private long acceptedAt, acceptedMillis, startedAt;
+    private LeaseGrant ownerGrant;
 
     public State() { this.clock = System::nanoTime; }
     public State(int nodeId, Path directory, LongSupplier clock) throws IOException {
@@ -67,15 +67,22 @@ public class State {
         accpetedProposal = copy(proposal); acceptedAt = now(); acceptedMillis = proposal.getTimeout();
     }
     public synchronized boolean isLeaseOwner() {
-        if (leaseOwner && elapsed(ownerAt, ownerMillis)) leaseOwner = false;
-        return leaseOwner;
+        if (ownerGrant != null && elapsed(ownerGrant.startedAtNanos(), OWNER_LEASE_MILLIS)) ownerGrant = null;
+        return ownerGrant != null;
     }
-    public synchronized void grantOwnership(long sentAt) {
+    public synchronized void grantOwnership(long sentAt, long winningBallot) {
         if (now() - sentAt < OWNER_LEASE_MILLIS * 1000000L) {
-            ownerAt = sentAt; ownerMillis = OWNER_LEASE_MILLIS; leaseOwner = true;
+            ownerGrant = new LeaseGrant(winningBallot, getNodeId(), sentAt);
         }
     }
-    public synchronized void revokeOwnership() { leaseOwner = false; }
+    public synchronized LeaseGrant currentLease() {
+        if (!isLeaseOwner()) throw new LeaseUnavailableException();
+        return ownerGrant;
+    }
+    public synchronized boolean isCurrentLease(LeaseGrant grant) {
+        return isLeaseOwner() && ownerGrant.equals(grant);
+    }
+    public synchronized void revokeOwnership() { ownerGrant = null; }
     public static Proposal copy(Proposal p) {
         if (p == null) return null;
         Proposal c = new Proposal(); c.setProposerId(p.getProposerId()); c.setMachineId(p.getMachineId()); c.setTimeout(p.getTimeout()); return c;

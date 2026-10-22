@@ -55,7 +55,7 @@ restart, reordered/delayed/duplicate reply, contention and real-socket scenarios
 
 The safety argument depends on the assumptions above. There is no guarantee of
 continuous leadership during arbitrary message loss or sustained contention.
-There is no storage fencing: an operation paused after checking ownership may
-still run after its lease ends. Downstream systems must enforce fencing before
-using this demonstration for protected production writes. Endpoint authentication and dependency modernization are implemented separately
+Lease checks alone cannot stop an operation paused before a write. The optional
+shared JDBC business store now implements resource-side fencing (see FENCING.md);
+other downstream systems must enforce their own fencing. Endpoint authentication and dependency modernization are implemented separately
 from the lease protocol; see SECURITY.md. Dynamic reconfiguration remains separate work.

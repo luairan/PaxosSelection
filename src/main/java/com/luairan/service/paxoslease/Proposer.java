@@ -41,7 +41,7 @@ public class Proposer {
         if (state.now() - sentAt >= State.OWNER_LEASE_MILLIS * 1000000L) { cancelled = true; return false; }
         accepted.add(peer);
         if (accepted.size() < quorum) return false;
-        finished = true; state.grantOwnership(sentAt); return true;
+        finished = true; state.grantOwnership(sentAt, ballot); return true;
     }
     private boolean valid(String peer, Response r) {
         return !cancelled && peers.contains(peer) && r != null && r.getBallotNumber() == ballot;

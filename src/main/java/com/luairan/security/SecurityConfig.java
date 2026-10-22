@@ -21,7 +21,7 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .requestCache(c -> c.disable())
             .authorizeHttpRequests(a -> a.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll().requestMatchers("/paxos").hasRole("NODE")
-                .requestMatchers("/show/**").hasRole("ADMIN").anyRequest().denyAll())
+                .requestMatchers("/show/**", "/business/**").hasRole("ADMIN").anyRequest().denyAll())
             .exceptionHandling(e -> e.authenticationEntryPoint((req, res, error) -> {
                     res.setHeader("WWW-Authenticate", "Bearer"); res.sendError(401);
                 })
