@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.io.*;
-import java.nio.channels.FileLock;
 import java.nio.file.*;
 import java.util.function.LongSupplier;
 
@@ -17,9 +16,8 @@ public class State {
     @Value("${paxos.node-id:1}") private int nodeId = 1;
     @Value("${paxos.data-dir:./data}") private String dataDir = "./data";
     private final LongSupplier clock;
-    private RandomAccessFile sequenceFile;
-    private FileLock fileLock;
-    private long sequence, ballotNumber, highestPromissed;
+    private BallotSequenceStore sequenceStore;
+    private long ballotNumber, highestPromissed;
     private Proposal accpetedProposal;
     private long acceptedAt, acceptedMillis, startedAt;
     private LeaseGrant ownerGrant;
@@ -30,29 +28,26 @@ public class State {
     }
     @PostConstruct
     public synchronized void initialize() throws IOException {
-        if (sequenceFile != null) return;
-        if (nodeId < 1 || nodeId > 65535) throw new IllegalArgumentException("node-id must be 1..65535 and unique in the cluster");
-        Files.createDirectories(Paths.get(dataDir));
-        sequenceFile = new RandomAccessFile(Paths.get(dataDir, "node-" + nodeId + ".ballot").toFile(), "rw");
-        fileLock = sequenceFile.getChannel().tryLock();
-        if (fileLock == null) throw new IOException("Node identity already in use");
-        if (sequenceFile.length() != 0 && sequenceFile.length() != 8) throw new IOException("Corrupt ballot sequence");
-        sequence = sequenceFile.length() == 8 ? sequenceFile.readLong() : 0;
-        if (sequence < 0 || sequence > (Long.MAX_VALUE >>> 16)) throw new IOException("Corrupt ballot sequence");
-        startedAt = now();
+        if (sequenceStore != null) return;
+        BallotSequenceStore opened = BallotSequenceStore.open(nodeId, Paths.get(dataDir));
+        try {
+            startedAt = now();
+            sequenceStore = opened;
+        } catch (RuntimeException | Error failure) {
+            try { opened.close(); }
+            catch (IOException cleanup) { failure.addSuppressed(cleanup); }
+            throw failure;
+        }
     }
     public long now() { return clock.getAsLong(); }
-    public synchronized boolean isReady() { return elapsed(startedAt, MAX_LEASE_MILLIS); }
+    public synchronized boolean isReady() { return sequenceStore != null && sequenceStore.isHealthy() && elapsed(startedAt, MAX_LEASE_MILLIS); }
     private boolean elapsed(long start, long millis) { return now() - start >= millis * 1000000L; }
     public String getNodeId() { return Integer.toString(nodeId); }
     public synchronized long nextBallotNumber() {
-        long next = Math.max(sequence, highestPromissed >>> 16) + 1;
-        if (next > (Long.MAX_VALUE >>> 16)) throw new IllegalStateException("Ballot sequence exhausted");
+        if (sequenceStore == null) throw new IllegalStateException("Ballot store is not initialized");
         try {
-            sequenceFile.seek(0); sequenceFile.writeLong(next); sequenceFile.getFD().sync();
-        } catch (IOException e) { throw new IllegalStateException("Cannot persist ballot", e); }
-        sequence = next;
-        ballotNumber = (sequence << 16) | nodeId;
+            ballotNumber = sequenceStore.nextBallot(highestPromissed);
+        } catch (IOException e) { revokeOwnership(); throw new IllegalStateException("Cannot persist ballot", e); }
         return ballotNumber;
     }
     public synchronized void observeBallot(long ballot) { highestPromissed = Math.max(highestPromissed, ballot); }
@@ -90,8 +85,10 @@ public class State {
     @PreDestroy
     public synchronized void close() throws IOException {
         revokeOwnership();
-        if (fileLock != null) fileLock.release();
-        if (sequenceFile != null) sequenceFile.close();
-        fileLock = null; sequenceFile = null;
+        if (sequenceStore != null) {
+            BallotSequenceStore opened = sequenceStore;
+            sequenceStore = null;
+            opened.close();
+        }
     }
 }
