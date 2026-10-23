@@ -96,3 +96,19 @@ directory, or downgrade to a binary that ignores it. The sidecar is append-only
 checks record structure, not adversarial tampering or arbitrary storage corruption.
 Directory sync is required; filesystems/platforms that cannot provide it fail
 startup. The durable-directory and filesystem fsync guarantees remain assumptions.
+
+## Explicit proposer phases
+
+Each attempt transitions PREPARING -> PREPARED on a distinct prepare quorum,
+then PREPARED -> ACCEPTING when phase two is first constructed. ACCEPTING becomes
+SUCCEEDED only on a matching accept quorum within the immutable deadline, or
+EXPIRED when a matching reply arrives at/after that deadline. Active phases can
+be CANCELLED. SUCCEEDED, CANCELLED and EXPIRED are terminal: no response can reopen
+them. SUCCEEDED records historical confirmation, not a claim that its lease is
+still live; State remains the authority for current lease validity.
+
+PREPARED does not count accept replies until phase two has actually started.
+Repeated construction while ACCEPTING preserves the original timestamp and ballot;
+construction in a terminal phase is rejected. Cancellation of an attempt never
+revokes State ownership on its own, since that ownership may belong to a newer
+attempt. The service's stop operation explicitly revokes current ownership.
