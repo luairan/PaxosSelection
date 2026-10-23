@@ -59,3 +59,21 @@ Lease checks alone cannot stop an operation paused before a write. The optional
 shared JDBC business store now implements resource-side fencing (see FENCING.md);
 other downstream systems must enforce their own fencing. Endpoint authentication and dependency modernization are implemented separately
 from the lease protocol; see SECURITY.md. Dynamic reconfiguration remains separate work.
+
+## Ballot file ownership and initialization
+
+`BallotSequenceStore` owns the node's file descriptor, exclusive OS lock and
+counter. It preserves the existing `node-{id}.ballot` filename and eight-byte
+counter format. A new ballot is returned only after the counter is synced.
+Invalid lengths/values fail closed without resetting the file. Failed opens
+close their descriptor, and `State` publishes the store only after initialization
+succeeds. Failed/closed state cannot participate as a ready acceptor; a successful
+retry starts the full recovery wait.
+
+A process-local registry rejects duplicate opens before creating another file
+descriptor, including aliases of the same file. This matters on systems where
+closing any descriptor releases the process's OS locks for that file. Other
+processes are excluded by the OS lock. All application access to ballot files
+must use this store; do not modify, replace or open live ballot files through
+unrelated code. The tests use child JVMs to verify lock exclusion after a rejected
+duplicate open and retry after an external lock holder exits.
