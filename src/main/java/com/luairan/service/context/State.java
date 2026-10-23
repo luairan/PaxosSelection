@@ -40,14 +40,14 @@ public class State {
         }
     }
     public long now() { return clock.getAsLong(); }
-    public synchronized boolean isReady() { return sequenceStore != null && elapsed(startedAt, MAX_LEASE_MILLIS); }
+    public synchronized boolean isReady() { return sequenceStore != null && sequenceStore.isHealthy() && elapsed(startedAt, MAX_LEASE_MILLIS); }
     private boolean elapsed(long start, long millis) { return now() - start >= millis * 1000000L; }
     public String getNodeId() { return Integer.toString(nodeId); }
     public synchronized long nextBallotNumber() {
         if (sequenceStore == null) throw new IllegalStateException("Ballot store is not initialized");
         try {
             ballotNumber = sequenceStore.nextBallot(highestPromissed);
-        } catch (IOException e) { throw new IllegalStateException("Cannot persist ballot", e); }
+        } catch (IOException e) { revokeOwnership(); throw new IllegalStateException("Cannot persist ballot", e); }
         return ballotNumber;
     }
     public synchronized void observeBallot(long ballot) { highestPromissed = Math.max(highestPromissed, ballot); }

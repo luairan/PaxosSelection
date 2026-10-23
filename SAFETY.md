@@ -77,3 +77,22 @@ processes are excluded by the OS lock. All application access to ballot files
 must use this store; do not modify, replace or open live ballot files through
 unrelated code. The tests use child JVMs to verify lock exclusion after a rejected
 duplicate open and retry after an external lock holder exits.
+
+The counter now has an append-only `node-{id}.ballot.journal` sidecar. Each record
+contains a strictly increasing reserved sequence and its bitwise complement.
+The store syncs that reservation before overwriting/syncing the legacy eight-byte
+counter. On open, it validates the entire journal and uses the higher of the
+counter and last reservation, so a torn counter overwrite cannot silently lower
+a previously reserved generation. Incomplete or invalid journal records fail
+closed; they are not truncated automatically. Any persistence I/O failure poisons
+the open store, stops further ballot issuance and makes State unready; State also
+revokes its local ownership. Explicit close/reopen is required to validate again.
+
+Existing counter-only directories are adopted on first open. Once adopted, keep
+the journal and counter together in the same stable durable data directory;
+backups must preserve both. Do not delete the journal, switch to a hard-link alias
+directory, or downgrade to a binary that ignores it. The sidecar is append-only
+(16 bytes per attempted generation); compaction is not implemented. Its checksum
+checks record structure, not adversarial tampering or arbitrary storage corruption.
+Directory sync is required; filesystems/platforms that cannot provide it fail
+startup. The durable-directory and filesystem fsync guarantees remain assumptions.

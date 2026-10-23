@@ -191,9 +191,8 @@ class BallotSequenceStoreTest {
             assertThrows(IOException.class, state::initialize);
             assertFalse(state.isReady());
             assertThrows(IllegalStateException.class, state::nextBallotNumber);
-            counter(
-                    7); // Simulate explicit operator repair; the store never resets a corrupt
-                        // counter.
+            counter(7); // Simulate explicit operator repair; the store never resets a corrupt
+            // counter.
             state.initialize();
             assertFalse(state.isReady());
             assertEquals((8L << 16) | 1, state.nextBallotNumber());
@@ -253,6 +252,90 @@ class BallotSequenceStoreTest {
         store.close();
         store.close();
         assertThrows(IllegalStateException.class, () -> store.nextBallot(0));
+        try (var reopened = BallotSequenceStore.open(1, directory)) {
+            assertEquals(131073, reopened.nextBallot(0));
+        }
+    }
+
+    private Path journal() {
+        return directory.resolve("node-1.ballot.journal");
+    }
+
+    private byte[] record(long sequence) {
+        return ByteBuffer.allocate(16).putLong(sequence).putLong(~sequence).array();
+    }
+
+    @Test
+    void journalPreventsReuseAfterCounterOverwriteTearsToValidLowerValue() throws Exception {
+        counter(255);
+        // Crash image: reservation 256 was synced; overwriting 255 left a valid zero.
+        Files.write(journal(), record(256));
+        counter(0);
+        try (var recovered = BallotSequenceStore.open(1, directory)) {
+            assertEquals((257L << 16) | 1, recovered.nextBallot(0));
+        }
+    }
+
+    @Test
+    void incompleteOrCorruptJournalFailsClosedAndReleasesLock() throws Exception {
+        counter(7);
+        for (byte[] bytes :
+                new byte[][] {
+                    new byte[1],
+                    new byte[8],
+                    new byte[16],
+                    ByteBuffer.allocate(16).putLong(8).putLong(8).array()
+                }) {
+            Files.write(journal(), bytes);
+            assertThrows(IOException.class, () -> BallotSequenceStore.open(1, directory));
+            assertArrayEquals(bytes, Files.readAllBytes(journal()));
+            try (FileChannel channel = FileChannel.open(file(), StandardOpenOption.WRITE);
+                    var lock = channel.tryLock()) {
+                assertNotNull(lock);
+            }
+        }
+    }
+
+    @Test
+    void journalRejectsReorderedReservations() throws Exception {
+        counter(7);
+        Files.write(journal(), record(9));
+        Files.write(journal(), record(8), StandardOpenOption.APPEND);
+        assertThrows(IOException.class, () -> BallotSequenceStore.open(1, directory));
+    }
+
+    @Test
+    void legacyCounterIsAdoptedAndEveryReturnedBallotHasSyncedReservation() throws Exception {
+        counter(7);
+        try (var store = BallotSequenceStore.open(1, directory)) {
+            assertEquals((8L << 16) | 1, store.nextBallot(0));
+        }
+        assertArrayEquals(record(8), Files.readAllBytes(journal()));
+        assertEquals(8, ByteBuffer.wrap(Files.readAllBytes(file())).getLong());
+        try (var reopened = BallotSequenceStore.open(1, directory)) {
+            assertEquals((9L << 16) | 1, reopened.nextBallot(0));
+        }
+    }
+
+    @Test
+    void persistenceFailureStopsIssuanceAndRevokesLocalLease() throws Exception {
+        AtomicLong now = new AtomicLong();
+        State state = uninitialized(now);
+        try {
+            state.initialize();
+            now.set(TimeUnit.SECONDS.toNanos(30));
+            state.grantOwnership(now.get(), state.nextBallotNumber());
+            assertTrue(state.isLeaseOwner());
+            var store = (BallotSequenceStore) ReflectionTestUtils.getField(state, "sequenceStore");
+            // Fault injection: a closed journal descriptor makes the next append fail.
+            ((java.io.RandomAccessFile) ReflectionTestUtils.getField(store, "journal")).close();
+            assertThrows(IllegalStateException.class, state::nextBallotNumber);
+            assertFalse(state.isLeaseOwner());
+            assertFalse(state.isReady());
+            assertThrows(IllegalStateException.class, state::nextBallotNumber);
+        } finally {
+            state.close();
+        }
         try (var reopened = BallotSequenceStore.open(1, directory)) {
             assertEquals(131073, reopened.nextBallot(0));
         }
